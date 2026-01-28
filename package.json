@@ -2,25 +2,60 @@
   "name": "pos-destop",
   "version": "0.1.0",
   "private": true,
+  "main": "dist-electron/electron/main.js",
   "scripts": {
-    "dev": "next dev",
+    "dev": "concurrently -k \"next dev\" \"tsc -p electron/tsconfig.json --watch\" \"wait-on http://localhost:3000 dist-electron/electron/main.js && electron dist-electron/electron/main.js\"",
     "build": "next build",
+    "build:electron": "tsc -p electron/tsconfig.json",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "dist": "npm run build && npm run build:electron && electron-builder",
+    "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
+    "better-sqlite3": "^11.10.0",
     "next": "16.1.4",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "react-hot-toast": "^2.5.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/better-sqlite3": "^7.6.10",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^9.1.0",
+    "electron": "^34.0.0",
+    "electron-builder": "^24.13.3",
     "eslint": "^9",
     "eslint-config-next": "16.1.4",
     "tailwindcss": "^4",
+    "wait-on": "^8.0.3",
     "typescript": "^5"
+  },
+  "build": {
+    "appId": "com.lukman.posdesktop",
+    "productName": "POS Desktop",
+    "asar": true,
+    "files": [
+      ".next/**",
+      "app/**",
+      "public/**",
+      "dist-electron/**",
+      "package.json",
+      "node_modules/**"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    }
   }
 }
