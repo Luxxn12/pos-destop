@@ -69,7 +69,7 @@ export default function HistoryPage() {
         <div>
           <h1 className="text-2xl font-semibold">Riwayat Transaksi</h1>
           <p className="text-sm text-slate-500">
-            Data terbaru disimpan di SQLite lokal.
+           Melihat daftar transaksi yang telah dilakukan.
           </p>
         </div>
         <button
@@ -133,7 +133,7 @@ export default function HistoryPage() {
                   <tr>
                     <th className="px-4 py-3 font-semibold">ID</th>
                     <th className="px-4 py-3 font-semibold">Tanggal</th>
-                    <th className="px-4 py-3 font-semibold text-right">
+                    <th className="px-4 py-3 font-semibold text-left">
                       Total
                     </th>
                     <th className="px-4 py-3 font-semibold text-right">
@@ -150,7 +150,7 @@ export default function HistoryPage() {
                       <td className="px-4 py-3 text-slate-600">
                         {formatDateTimeDDMMYYYY(tx.created_at)}
                       </td>
-                      <td className="px-4 py-3 text-right font-semibold">
+                      <td className="px-4 py-3 text-left font-semibold">
                         {formatRupiah(tx.total)}
                       </td>
                       <td className="px-4 py-3 text-right">

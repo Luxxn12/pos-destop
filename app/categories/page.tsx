@@ -116,7 +116,7 @@ export default function CategoriesPage() {
         <div>
           <h1 className="text-2xl font-semibold">Kategori</h1>
           <p className="text-sm text-slate-500">
-            CRUD kategori produk untuk POS.
+            Pengelolaan kategori produk.
           </p>
         </div>
         <button

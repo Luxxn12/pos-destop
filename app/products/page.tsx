@@ -248,7 +248,7 @@ export default function ProductsPage() {
         <div>
           <h1 className="text-2xl font-semibold">Produk</h1>
           <p className="text-sm text-slate-500">
-            CRUD produk terhubung ke SQLite. Barcode siap untuk scan.
+            Pengelolaan produk dengan scan barcode.
           </p>
         </div>
         <button

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
+import type { EChartsOption } from "echarts";
 import type {
   DateRangeFilter,
   ReportSeriesBucket,
@@ -14,6 +16,8 @@ const formatRupiah = (value: number) =>
     currency: "IDR",
     maximumFractionDigits: 0
   }).format(value);
+
+const ReactECharts = dynamic(() => import("echarts-for-react"), { ssr: false });
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const toSqliteDateTime = (date: Date) => {
@@ -178,6 +182,53 @@ export default function ReportsPage() {
     return formatted.slice(0, 5);
   };
 
+  const chartOption = useMemo<EChartsOption>(() => {
+    const labels = series.map((point) => formatChartLabel(point.label));
+    const values = series.map((point) => Number(point.value) || 0);
+    return {
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: (params) => {
+          const payload = Array.isArray(params) ? params[0] : params;
+          if (!payload) return "";
+          const label = payload.name ?? "";
+          const value = Array.isArray(payload.value)
+            ? payload.value[1]
+            : payload.value ?? 0;
+          return `${label}<br/>${formatRupiah(Number(value) || 0)}`;
+        }
+      },
+      grid: { left: 16, right: 16, top: 16, bottom: 32, containLabel: true },
+      xAxis: {
+        type: "category",
+        data: labels,
+        axisTick: { alignWithLabel: true },
+        axisLabel: { color: "#64748b", fontSize: 10 }
+      },
+      yAxis: {
+        type: "value",
+        axisLabel: {
+          color: "#94a3b8",
+          fontSize: 10,
+          formatter: (value: number) =>
+            new Intl.NumberFormat("id-ID", { notation: "compact" }).format(
+              Number(value) || 0
+            )
+        },
+        splitLine: { lineStyle: { color: "#e2e8f0" } }
+      },
+      series: [
+        {
+          type: "bar",
+          data: values,
+          itemStyle: { color: "rgba(16,185,129,0.7)", borderRadius: [6, 6, 0, 0] },
+          barMaxWidth: 28
+        }
+      ]
+    };
+  }, [series, range]);
+
   const handleExport = async () => {
     const path = await window.api.exportTransactions(filter);
     if (path) {
@@ -251,22 +302,54 @@ export default function ReportsPage() {
         </div>
       </section>
 
-      <section className="grid grid-cols-3 gap-4">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4">
-          <p className="text-xs text-slate-500">Total Pendapatan</p>
-          <p className="text-xl font-semibold">
-            {formatRupiah(summary.total_revenue)}
-          </p>
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-emerald-700/80">
+                Total Pendapatan
+              </p>
+              <p className="text-2xl font-semibold text-slate-900">
+                {formatRupiah(summary.total_revenue)}
+              </p>
+              <p className="text-[11px] text-emerald-700/70">Semua pemasukan</p>
+            </div>
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600">
+              <span className="text-lg">Rp</span>
+            </div>
+          </div>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-4">
-          <p className="text-xs text-slate-500">Jumlah Transaksi</p>
-          <p className="text-xl font-semibold">{summary.total_transactions}</p>
+        <div className="rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50 to-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-sky-700/80">
+                Jumlah Transaksi
+              </p>
+              <p className="text-2xl font-semibold text-slate-900">
+                {summary.total_transactions}
+              </p>
+              <p className="text-[11px] text-sky-700/70">Total transaksi</p>
+            </div>
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-600">
+              <span className="text-lg">#</span>
+            </div>
+          </div>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-4">
-          <p className="text-xs text-slate-500">Rata-rata Transaksi</p>
-          <p className="text-xl font-semibold">
-            {formatRupiah(summary.average_transaction)}
-          </p>
+        <div className="rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50 to-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-amber-700/80">
+                Rata-rata Transaksi
+              </p>
+              <p className="text-2xl font-semibold text-slate-900">
+                {formatRupiah(summary.average_transaction)}
+              </p>
+              <p className="text-[11px] text-amber-700/70">Nilai rata-rata</p>
+            </div>
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600">
+              <span className="text-lg">≈</span>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -290,31 +373,11 @@ export default function ReportsPage() {
         {series.length === 0 ? (
           <p className="mt-4 text-sm text-slate-500">Tidak ada data.</p>
         ) : (
-          <div className="mt-6 overflow-x-auto">
-            <div className="flex items-end gap-2 h-48 min-w-full">
-              {(() => {
-                const values = series.map((point) => Number(point.value) || 0);
-                const maxValue = Math.max(1, ...values);
-                return series.map((point) => {
-                  const normalized = (Number(point.value) || 0) / maxValue;
-                  const height = point.value > 0 ? Math.max(0.06, normalized) : 0;
-                  return (
-                    <div
-                      key={point.label}
-                      className="flex h-full flex-1 flex-col items-center justify-end gap-2 min-w-[28px]"
-                    >
-                      <div
-                        className="w-full rounded-md bg-emerald-500/70"
-                        style={{ height: `${height * 100}%` }}
-                      />
-                      <span className="text-[10px] text-slate-500">
-                        {formatChartLabel(point.label)}
-                      </span>
-                    </div>
-                  );
-                });
-              })()}
-            </div>
+          <div className="mt-6">
+            <ReactECharts
+              option={chartOption}
+              style={{ height: 240, width: "100%" }}
+            />
           </div>
         )}
       </section>

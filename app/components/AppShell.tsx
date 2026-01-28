@@ -19,6 +19,7 @@ export default function AppShell({ children }: AppShellProps) {
   const [isAuthed, setIsAuthed] = useState(false);
   const [note, setNote] = useState("");
   const [form, setForm] = useState({ username: "", password: "" });
+  const [showPassword, setShowPassword] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const pathname = usePathname();
 
@@ -130,10 +131,14 @@ export default function AppShell({ children }: AppShellProps) {
         onSubmit={handleLogin}
         className="w-full max-w-md bg-white border border-slate-200 rounded-2xl p-8 shadow-xl"
       >
-          <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-2xl font-semibold">Masuk SmartPOS</h1>
+          <div className="flex items-center justify-center mb-4">
+            <img
+              src="/logo.png"
+              alt="SmartPOS"
+              className="h-28 w-auto"
+            />
           </div>
-          <p className="text-sm text-slate-500 mb-6">
+          <p className="text-center text-sm text-slate-500 mb-6">
             Gunakan kredensial yang sudah ditentukan.
           </p>
           <label className="block text-sm text-slate-700 mb-2">
@@ -145,20 +150,42 @@ export default function AppShell({ children }: AppShellProps) {
               setForm((prev) => ({ ...prev, username: event.target.value }))
             }
             className="w-full h-12 mb-4 rounded-lg bg-white border border-slate-300 px-4 text-sm text-slate-900"
-            placeholder="admin"
+            placeholder="Username"
           />
           <label className="block text-sm text-slate-700 mb-2">
             Password <span className="text-rose-600">*</span>
           </label>
-          <input
-            type="password"
-            value={form.password}
-            onChange={(event) =>
-              setForm((prev) => ({ ...prev, password: event.target.value }))
-            }
-            className="w-full h-12 mb-6 rounded-lg bg-white border border-slate-300 px-4 text-sm text-slate-900"
-            placeholder="admin123"
-          />
+          <div className="relative mb-6">
+            <input
+              type={showPassword ? "text" : "password"}
+              value={form.password}
+              onChange={(event) =>
+                setForm((prev) => ({ ...prev, password: event.target.value }))
+              }
+              className="w-full h-12 rounded-lg bg-white border border-slate-300 px-4 pr-12 text-sm text-slate-900"
+              placeholder="Password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 transition hover:text-slate-700"
+              aria-label={showPassword ? "Sembunyikan password" : "Lihat password"}
+            >
+              {showPassword ? (
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 3l18 18" />
+                  <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+                  <path d="M9.9 4.3A10.9 10.9 0 0 1 12 4c4.8 0 8.7 3 10 7-0.5 1.8-1.6 3.5-3.1 4.8" />
+                  <path d="M6.1 6.1A10.7 10.7 0 0 0 2 11c1.3 4 5.2 7 10 7 1 0 2-0.1 2.9-0.4" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              )}
+            </button>
+          </div>
           {note && <p className="text-sm text-amber-600 mb-4">{note}</p>}
           <button
             type="submit"
@@ -182,40 +209,18 @@ export default function AppShell({ children }: AppShellProps) {
       >
         <aside
           className={[
-            "border-r border-slate-200 bg-white transition-[padding] duration-200",
+            "border-r border-slate-200 bg-white transition-[padding] duration-200 flex flex-col",
             isCollapsed ? "p-4" : "p-6"
           ].join(" ")}
         >
-          <div
-            className={[
-              "flex items-start justify-between gap-3",
-              isCollapsed ? "flex-col" : "flex-row"
-            ].join(" ")}
-          >
-            <div className={isCollapsed ? "hidden" : "flex items-center gap-3"}>
-              <span className="text-lg font-semibold">SmartPOS</span>
+          <div className="flex items-center justify-center">
+            <div className="flex items-center justify-center">
+              <img
+                src="/logo.png"
+                alt="SmartPOS"
+                className={isCollapsed ? "h-10 w-auto" : "h-20 w-auto"}
+              />
             </div>
-            <button
-              type="button"
-              onClick={() => setIsCollapsed((prev) => !prev)}
-              className={[
-                "rounded-lg border border-slate-200 bg-slate-100 p-2 text-slate-700 transition hover:text-slate-900 hover:border-slate-300",
-                isCollapsed ? "self-center" : "self-start"
-              ].join(" ")}
-              aria-label={isCollapsed ? "Perbesar sidebar" : "Perkecil sidebar"}
-            >
-              {isCollapsed ? (
-                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M4 12h16" />
-                  <path d="M10 6l-6 6 6 6" />
-                </svg>
-              ) : (
-                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M4 12h16" />
-                  <path d="M14 6l6 6-6 6" />
-                </svg>
-              )}
-            </button>
           </div>
           <nav className={["text-sm", isCollapsed ? "mt-6 space-y-1" : "mt-6 space-y-2"].join(" ")}>
             {navItems.map((item) => {
@@ -244,6 +249,26 @@ export default function AppShell({ children }: AppShellProps) {
               );
             })}
           </nav>
+          <div className="mt-auto flex justify-end pt-6">
+            <button
+              type="button"
+              onClick={() => setIsCollapsed((prev) => !prev)}
+              className="rounded-lg border border-slate-200 bg-slate-100 p-2 text-slate-700 transition hover:text-slate-900 hover:border-slate-300"
+              aria-label={isCollapsed ? "Perbesar sidebar" : "Perkecil sidebar"}
+            >
+              {isCollapsed ? (
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 12h16" />
+                  <path d="M10 6l-6 6 6 6" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 12h16" />
+                  <path d="M14 6l6 6-6 6" />
+                </svg>
+              )}
+            </button>
+          </div>
         </aside>
         <section className="p-8 space-y-8">{children}</section>
       </div>

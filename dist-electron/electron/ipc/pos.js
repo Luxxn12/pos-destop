@@ -28,11 +28,11 @@ const buildDateFilter = (filter) => {
     const clauses = [];
     const params = [];
     if (filter.from) {
-        clauses.push("datetime(created_at) >= datetime(?)");
+        clauses.push("datetime(created_at, 'localtime') >= datetime(?)");
         params.push(filter.from);
     }
     if (filter.to) {
-        clauses.push("datetime(created_at) <= datetime(?)");
+        clauses.push("datetime(created_at, 'localtime') <= datetime(?)");
         params.push(filter.to);
     }
     return {
@@ -421,7 +421,7 @@ const registerPosIpc = () => {
         const todayRow = db
             .prepare(`SELECT COUNT(*) as transactions_today, COALESCE(SUM(total), 0) as revenue_today
          FROM transactions
-         WHERE date(created_at) = date('now')`)
+         WHERE date(created_at, 'localtime') = date('now', 'localtime')`)
             .get();
         const productsRow = db
             .prepare("SELECT COUNT(*) as products_count FROM products")
@@ -430,7 +430,7 @@ const registerPosIpc = () => {
             .prepare(`SELECT name, COALESCE(SUM(qty), 0) as qty_sold
          FROM transaction_items
          WHERE transaction_id IN (
-           SELECT id FROM transactions WHERE date(created_at) = date('now')
+           SELECT id FROM transactions WHERE date(created_at, 'localtime') = date('now', 'localtime')
          )
          GROUP BY name
          ORDER BY qty_sold DESC, name ASC
@@ -482,8 +482,8 @@ const registerPosIpc = () => {
         const db = (0, index_1.getDb)();
         const { clause, params } = buildDateFilter(payload?.filter);
         const groupExpr = payload?.groupBy === "hour"
-            ? "printf('%02d', strftime('%H', created_at))"
-            : "date(created_at)";
+            ? "printf('%02d', strftime('%H', created_at, 'localtime'))"
+            : "date(created_at, 'localtime')";
         const rows = db
             .prepare(`SELECT ${groupExpr} as bucket, SUM(total) as total
            FROM transactions

@@ -14,6 +14,8 @@
   },
   "dependencies": {
     "better-sqlite3": "^11.10.0",
+    "echarts": "^6.0.0",
+    "echarts-for-react": "^3.0.6",
     "jsbarcode": "^3.11.6",
     "next": "16.1.4",
     "react": "19.2.3",
@@ -32,13 +34,13 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.4",
     "tailwindcss": "^4",
-    "wait-on": "^8.0.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wait-on": "^8.0.3"
   },
   "build": {
     "appId": "com.lukman.smartpos",
     "productName": "SmartPOS",
-    "icon": "public/logo.png",
+    "icon": "public/icon-apk.png",
     "asar": true,
     "files": [
       ".next/**",
@@ -51,9 +53,13 @@
     "directories": {
       "output": "dist"
     },
+    "mac": {
+      "target": "dmg",
+      "icon": "public/icon-apk.icns"
+    },
     "win": {
       "target": "nsis",
-      "icon": "public/logo.png"
+      "icon": "public/icon-apk.ico"
     },
     "nsis": {
       "oneClick": false,
