@@ -81,7 +81,7 @@ const createApp = async () => {
   await createMainWindow(url);
 };
 
-app.setAppUserModelId("com.lukman.posdesktop");
+app.setAppUserModelId("com.lukman.smartpos");
 
 app.whenReady().then(createApp);
 

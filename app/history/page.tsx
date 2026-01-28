@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { DateRangeFilter, Transaction, TransactionDetail } from "../../types/pos";
+import { formatDateDDMMYYYY, formatDateTimeDDMMYYYY } from "@/lib/date";
 
 const formatRupiah = (value: number) =>
   new Intl.NumberFormat("id-ID", {
@@ -12,6 +13,7 @@ const formatRupiah = (value: number) =>
   }).format(value);
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
+const todayDisplay = () => formatDateDDMMYYYY(todayISO());
 
 export default function HistoryPage() {
   const router = useRouter();
@@ -55,8 +57,8 @@ export default function HistoryPage() {
     loadTransactions(1);
   }, [fromDate, toDate]);
 
-  const handleSelect = (id: number) => {
-    router.push(`/receipt/${id}`);
+  const handleSelect = (code: string | number) => {
+    router.push(`/receipt/${code}`);
   };
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -66,36 +68,40 @@ export default function HistoryPage() {
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Riwayat Transaksi</h1>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-slate-500">
             Data terbaru disimpan di SQLite lokal.
           </p>
         </div>
         <button
           onClick={() => loadTransactions(1)}
-          className="h-12 rounded-lg border border-slate-800 px-4 text-sm text-slate-300"
+          className="h-12 rounded-lg border border-slate-200 px-4 text-sm text-slate-700"
         >
           Refresh
         </button>
       </header>
 
-      <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+      <section className="rounded-2xl border border-slate-200 bg-white p-6">
         <div className="flex flex-wrap items-end gap-3">
           <div className="space-y-1">
-            <label className="block text-xs text-slate-400">Dari</label>
+            <label className="block text-xs text-slate-500">
+              Dari <span className="text-rose-600">*</span>
+            </label>
             <input
               type="date"
               value={fromDate}
               onChange={(event) => setFromDate(event.target.value)}
-              className="h-12 rounded-lg bg-slate-950 border border-slate-700 px-4 text-sm"
+              className="h-12 rounded-lg bg-white border border-slate-300 px-4 text-sm"
             />
           </div>
           <div className="space-y-1">
-            <label className="block text-xs text-slate-400">Sampai</label>
+            <label className="block text-xs text-slate-500">
+              Sampai <span className="text-rose-600">*</span>
+            </label>
             <input
               type="date"
               value={toDate}
               onChange={(event) => setToDate(event.target.value)}
-              className="h-12 rounded-lg bg-slate-950 border border-slate-700 px-4 text-sm"
+              className="h-12 rounded-lg bg-white border border-slate-300 px-4 text-sm"
             />
           </div>
           <button
@@ -103,56 +109,83 @@ export default function HistoryPage() {
               setFromDate("");
               setToDate("");
             }}
-            className="h-12 rounded-lg border border-slate-600 px-4 text-sm text-slate-200"
+            className="h-12 rounded-lg border border-slate-300 px-4 text-sm text-slate-700"
           >
             Clear
           </button>
-          <span className="text-xs text-slate-400">
-            Default: {todayISO()}
+          <span className="text-xs text-slate-500">
+            Default: {todayDisplay()}
           </span>
         </div>
       </section>
 
       <div>
-        <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+        <section className="rounded-2xl border border-slate-200 bg-white p-6">
           <h2 className="text-lg font-semibold mb-4">Daftar Transaksi</h2>
           {loading ? (
-            <p className="text-sm text-slate-400">Memuat...</p>
+            <p className="text-sm text-slate-500">Memuat...</p>
           ) : transactions.length === 0 ? (
-            <p className="text-sm text-slate-400">Belum ada transaksi.</p>
+            <p className="text-sm text-slate-500">Belum ada transaksi.</p>
           ) : (
-            <ul className="space-y-3">
-              {transactions.map((tx) => (
-                <li
-                  key={tx.id}
-                  className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950 p-3"
-                >
-                  <div>
-                    <p className="text-sm font-medium">Transaksi #{tx.id}</p>
-                    <p className="text-xs text-slate-400">{tx.created_at}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold">
-                      {formatRupiah(tx.total)}
-                    </p>
-                    <button
-                      className="text-xs text-emerald-400"
-                      onClick={() => handleSelect(tx.id)}
-                    >
-                      Detail
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
+              <table className="min-w-full text-sm">
+                <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">ID</th>
+                    <th className="px-4 py-3 font-semibold">Tanggal</th>
+                    <th className="px-4 py-3 font-semibold text-right">
+                      Total
+                    </th>
+                    <th className="px-4 py-3 font-semibold text-right">
+                      Aksi
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 bg-white">
+                  {transactions.map((tx) => (
+                    <tr key={tx.id} className="hover:bg-slate-50">
+                      <td className="px-4 py-3 font-medium text-slate-900">
+                        #{tx.code ?? tx.id}
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {formatDateTimeDDMMYYYY(tx.created_at)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold">
+                        {formatRupiah(tx.total)}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          type="button"
+                          className="text-emerald-600"
+                          onClick={() => handleSelect(tx.code ?? tx.id)}
+                          aria-label={`Detail transaksi ${tx.code ?? tx.id}`}
+                          title="Detail"
+                        >
+                          <svg
+                            viewBox="0 0 24 24"
+                            className="inline-block h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6-10-6-10-6Z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
           <div className="mt-4 flex items-center justify-between text-sm">
-            <span className="text-slate-400">
+            <span className="text-slate-500">
               Halaman {page} dari {totalPages}
             </span>
             <div className="flex gap-2">
               <button
-                className="h-12 rounded-lg border border-slate-700 px-4 text-sm"
+                className="h-12 rounded-lg border border-slate-300 px-4 text-sm"
                 disabled={page === 1}
                 onClick={() => {
                   const next = Math.max(1, page - 1);
@@ -163,7 +196,7 @@ export default function HistoryPage() {
                 Prev
               </button>
               <button
-                className="h-12 rounded-lg border border-slate-700 px-4 text-sm"
+                className="h-12 rounded-lg border border-slate-300 px-4 text-sm"
                 disabled={page >= totalPages}
                 onClick={() => {
                   const next = Math.min(totalPages, page + 1);

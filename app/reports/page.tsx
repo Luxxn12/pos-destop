@@ -6,6 +6,7 @@ import type {
   ReportSeriesBucket,
   ReportSummary
 } from "../../types/pos";
+import { formatDateDDMMYYYY } from "@/lib/date";
 
 const formatRupiah = (value: number) =>
   new Intl.NumberFormat("id-ID", {
@@ -172,8 +173,9 @@ export default function ReportsPage() {
 
   const formatChartLabel = (label: string) => {
     if (range === "daily") return label;
-    if (range === "monthly") return label.slice(8);
-    return label.slice(5);
+    const formatted = formatDateDDMMYYYY(label);
+    if (range === "monthly") return formatted.slice(0, 2);
+    return formatted.slice(0, 5);
   };
 
   const handleExport = async () => {
@@ -187,15 +189,17 @@ export default function ReportsPage() {
     <>
       <header>
         <h1 className="text-2xl font-semibold">Laporan</h1>
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-slate-500">
           Resume pendapatan dan transaksi, dengan opsi export.
         </p>
       </header>
 
-      <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+      <section className="rounded-2xl border border-slate-200 bg-white p-6">
         <div className="flex flex-wrap items-end gap-4">
           <div className="space-y-1">
-            <label className="block text-xs text-slate-400">Periode</label>
+            <label className="block text-xs text-slate-500">
+              Periode <span className="text-rose-600">*</span>
+            </label>
             <select
               value={range}
               onChange={(event) =>
@@ -203,7 +207,7 @@ export default function ReportsPage() {
                   event.target.value as "daily" | "weekly" | "monthly" | "custom"
                 )
               }
-              className="h-12 rounded-lg bg-slate-950 border border-slate-700 px-4 text-sm"
+              className="h-12 rounded-lg bg-white border border-slate-300 px-4 text-sm"
             >
               <option value="daily">Harian</option>
               <option value="weekly">Mingguan</option>
@@ -214,55 +218,59 @@ export default function ReportsPage() {
           {range === "custom" && (
             <div className="flex items-end gap-3">
               <div className="space-y-1">
-                <label className="block text-xs text-slate-400">Dari</label>
+                <label className="block text-xs text-slate-500">
+                  Dari <span className="text-rose-600">*</span>
+                </label>
                 <input
                   type="date"
                   value={customFrom}
                   onChange={(event) => setCustomFrom(event.target.value)}
-                  className="h-12 rounded-lg bg-slate-950 border border-slate-700 px-4 text-sm"
+                  className="h-12 rounded-lg bg-white border border-slate-300 px-4 text-sm"
                 />
               </div>
               <div className="space-y-1">
-                <label className="block text-xs text-slate-400">Sampai</label>
+                <label className="block text-xs text-slate-500">
+                  Sampai <span className="text-rose-600">*</span>
+                </label>
                 <input
                   type="date"
                   value={customTo}
                   onChange={(event) => setCustomTo(event.target.value)}
-                  className="h-12 rounded-lg bg-slate-950 border border-slate-700 px-4 text-sm"
+                  className="h-12 rounded-lg bg-white border border-slate-300 px-4 text-sm"
                 />
               </div>
             </div>
           )}
           <button
             onClick={handleExport}
-            className="h-12 rounded-lg border border-emerald-500/60 px-4 text-sm text-emerald-300"
+            className="h-12 rounded-lg border border-emerald-300 px-4 text-sm text-emerald-700"
           >
             Export Transaksi
           </button>
-          {note && <p className="text-xs text-emerald-300">{note}</p>}
+          {note && <p className="text-xs text-emerald-700">{note}</p>}
         </div>
       </section>
 
       <section className="grid grid-cols-3 gap-4">
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
-          <p className="text-xs text-slate-400">Total Pendapatan</p>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <p className="text-xs text-slate-500">Total Pendapatan</p>
           <p className="text-xl font-semibold">
             {formatRupiah(summary.total_revenue)}
           </p>
         </div>
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
-          <p className="text-xs text-slate-400">Jumlah Transaksi</p>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <p className="text-xs text-slate-500">Jumlah Transaksi</p>
           <p className="text-xl font-semibold">{summary.total_transactions}</p>
         </div>
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
-          <p className="text-xs text-slate-400">Rata-rata Transaksi</p>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <p className="text-xs text-slate-500">Rata-rata Transaksi</p>
           <p className="text-xl font-semibold">
             {formatRupiah(summary.average_transaction)}
           </p>
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+      <section className="rounded-2xl border border-slate-200 bg-white p-6">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-semibold">
@@ -274,13 +282,13 @@ export default function ReportsPage() {
                     ? "Penjualan Bulanan"
                     : "Penjualan Custom"}
             </p>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500">
               Total pendapatan sesuai periode.
             </p>
           </div>
         </div>
         {series.length === 0 ? (
-          <p className="mt-4 text-sm text-slate-400">Tidak ada data.</p>
+          <p className="mt-4 text-sm text-slate-500">Tidak ada data.</p>
         ) : (
           <div className="mt-6 overflow-x-auto">
             <div className="flex items-end gap-2 h-48 min-w-full">
@@ -299,7 +307,7 @@ export default function ReportsPage() {
                         className="w-full rounded-md bg-emerald-500/70"
                         style={{ height: `${height * 100}%` }}
                       />
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-[10px] text-slate-500">
                         {formatChartLabel(point.label)}
                       </span>
                     </div>

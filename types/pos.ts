@@ -12,6 +12,7 @@ export type SaveTransactionPayload = {
 
 export type Transaction = {
   id: number;
+  code?: string | null;
   subtotal?: number;
   tax_amount?: number;
   total: number;
@@ -31,6 +32,11 @@ export type TransactionItem = {
 export type TransactionDetail = {
   transaction: Transaction;
   items: TransactionItem[];
+};
+
+export type SavedTransactionResult = {
+  id: number;
+  code: string;
 };
 
 export type Category = {
@@ -54,6 +60,17 @@ export type DashboardSummary = {
   transactions_today: number;
   revenue_today: number;
   products_count: number;
+  top_products: {
+    name: string;
+    qty_sold: number;
+  }[];
+  low_stock_count: number;
+  low_stock_items: {
+    id: number;
+    name: string;
+    qty: number;
+  }[];
+  low_stock_threshold: number;
 };
 
 export type ReportSummary = {
@@ -103,7 +120,9 @@ export const IPCChannels = {
   saveTransaction: "pos:save-transaction",
   listTransactions: "pos:list-transactions",
   getTransactionDetail: "pos:get-transaction-detail",
+  getTransactionDetailByCode: "pos:get-transaction-detail-by-code",
   printReceipt: "pos:print-receipt",
+  printReceiptByCode: "pos:print-receipt-by-code",
   listCategories: "pos:list-categories",
   createCategory: "pos:create-category",
   updateCategory: "pos:update-category",

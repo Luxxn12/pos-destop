@@ -11,7 +11,9 @@ const IPCChannels = {
   saveTransaction: "pos:save-transaction",
   listTransactions: "pos:list-transactions",
   getTransactionDetail: "pos:get-transaction-detail",
+  getTransactionDetailByCode: "pos:get-transaction-detail-by-code",
   printReceipt: "pos:print-receipt",
+  printReceiptByCode: "pos:print-receipt-by-code",
   listCategories: "pos:list-categories",
   createCategory: "pos:create-category",
   updateCategory: "pos:update-category",
@@ -35,8 +37,12 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke(IPCChannels.listTransactions, payload),
   getTransactionDetail: (id: number) =>
     ipcRenderer.invoke(IPCChannels.getTransactionDetail, id),
+  getTransactionDetailByCode: (code: string) =>
+    ipcRenderer.invoke(IPCChannels.getTransactionDetailByCode, code),
   printReceipt: (transactionId: number) =>
     ipcRenderer.invoke(IPCChannels.printReceipt, transactionId),
+  printReceiptByCode: (code: string) =>
+    ipcRenderer.invoke(IPCChannels.printReceiptByCode, code),
   listCategories: () => ipcRenderer.invoke(IPCChannels.listCategories),
   createCategory: (payload: { name: string }) =>
     ipcRenderer.invoke(IPCChannels.createCategory, payload),

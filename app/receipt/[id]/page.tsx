@@ -4,6 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import type { StoreSettings, TransactionDetail } from "../../../types/pos";
 import toast from "react-hot-toast";
+import {
+  formatDateDDMMYYYY,
+  formatDateTimeDDMMYYYY,
+  formatTimeHHMMSS
+} from "@/lib/date";
 
 const formatRupiah = (value: number) =>
   new Intl.NumberFormat("id-ID", {
@@ -19,35 +24,42 @@ export default function ReceiptPage() {
   const [settings, setSettings] = useState<StoreSettings | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const transactionId = useMemo(() => {
+  const transactionCode = useMemo(() => {
     const raw = params?.id;
-    if (!raw) return null;
-    const parsed = Number(raw);
-    return Number.isFinite(parsed) ? parsed : null;
+    return raw ? String(raw) : null;
   }, [params]);
 
   useEffect(() => {
     const load = async () => {
-      if (!transactionId) {
+      if (!transactionCode) {
         setLoading(false);
         return;
       }
-      const [data, storeSettings] = await Promise.all([
-        window.api.getTransactionDetail(transactionId),
+      const [dataByCode, storeSettings] = await Promise.all([
+        window.api.getTransactionDetailByCode(transactionCode),
         window.api.getSettings()
       ]);
+      let data = dataByCode;
+      if (!data) {
+        const maybeId = Number(transactionCode);
+        if (Number.isFinite(maybeId)) {
+          data = await window.api.getTransactionDetail(maybeId);
+        }
+      }
       setDetail(data);
       setSettings(storeSettings);
       setLoading(false);
     };
 
     load();
-  }, [transactionId]);
+  }, [transactionCode]);
 
   const handlePrint = async () => {
     if (!detail) return;
     try {
-      const success = await window.api.printReceipt(detail.transaction.id);
+      const success = detail.transaction.code
+        ? await window.api.printReceiptByCode(detail.transaction.code)
+        : await window.api.printReceipt(detail.transaction.id);
       if (success) {
         toast.success("Struk berhasil dikirim ke printer.");
       } else {
@@ -60,31 +72,33 @@ export default function ReceiptPage() {
     }
   };
 
-  const transactionDate = detail?.transaction.created_at?.split(" ")[0] ?? "-";
-  const transactionTime = detail?.transaction.created_at?.split(" ")[1] ?? "-";
+  const transactionDate = formatDateDDMMYYYY(detail?.transaction.created_at);
+  const transactionTime = formatTimeHHMMSS(detail?.transaction.created_at);
+  const displayId =
+    detail?.transaction.code ?? detail?.transaction.id?.toString() ?? "-";
 
   return (
     <>
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Struk Transaksi</h1>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-slate-500">
             Detail transaksi setelah pembayaran.
           </p>
         </div>
         <button
           onClick={() => router.push("/transactions")}
-          className="h-12 rounded-lg border border-slate-800 px-4 text-sm text-slate-300"
+          className="h-12 rounded-lg border border-slate-200 px-4 text-sm text-slate-700"
         >
           Kembali ke Transaksi
         </button>
       </header>
 
-      <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+      <section className="rounded-2xl border border-slate-200 bg-white p-6">
         {loading ? (
-          <p className="text-sm text-slate-400">Memuat...</p>
+          <p className="text-sm text-slate-500">Memuat...</p>
         ) : !detail ? (
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-slate-500">
             Detail transaksi tidak ditemukan.
           </p>
         ) : (
@@ -93,10 +107,10 @@ export default function ReceiptPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium">
-                    Transaksi #{detail.transaction.id}
+                    Transaksi #{displayId}
                   </p>
-                  <p className="text-xs text-slate-400">
-                    {detail.transaction.created_at}
+                  <p className="text-xs text-slate-500">
+                    {formatDateTimeDDMMYYYY(detail.transaction.created_at)}
                   </p>
                 </div>
                 <p className="text-lg font-semibold">
@@ -116,8 +130,8 @@ export default function ReceiptPage() {
                   </div>
                 ))}
               </div>
-              <div className="border-t border-slate-800 pt-3 space-y-1 text-sm">
-                <div className="flex items-center justify-between text-slate-300">
+              <div className="border-t border-slate-200 pt-3 space-y-1 text-sm">
+                <div className="flex items-center justify-between text-slate-700">
                   <span>Subtotal</span>
                   <span>
                     {formatRupiah(
@@ -125,42 +139,47 @@ export default function ReceiptPage() {
                     )}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-slate-300">
-                  <span>Pajak</span>
+                <div className="flex items-center justify-between text-slate-700">
+                  <span>
+                    PPN{" "}
+                    {settings?.tax_enabled
+                      ? `(${settings.tax_rate ?? 0}%)`
+                      : "(Nonaktif)"}
+                  </span>
                   <span>{formatRupiah(detail.transaction.tax_amount ?? 0)}</span>
                 </div>
               </div>
               <button
                 onClick={handlePrint}
-                className="rounded-lg border border-emerald-500/60 text-emerald-300 px-4 py-2 text-sm"
+                className="rounded-lg border border-emerald-300 text-emerald-700 px-4 py-2 text-sm"
               >
                 Print Struk
               </button>
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
               <p className="text-xs uppercase tracking-widest text-slate-500 text-center">
                 Preview Struk
               </p>
-              <div className="mt-4 space-y-2 text-[11px] text-slate-200 font-mono">
+              <div className="mt-4 space-y-2 text-[11px] text-slate-700 font-mono">
                 <div className="text-center space-y-1">
                   <p className="text-sm font-semibold">
                     {settings?.store_name ?? "Nama Perusahaan"}
                   </p>
-                  <p className="text-slate-400">
+                  <p className="text-slate-500">
                     {settings?.store_address ?? ""}
                   </p>
-                  <p className="text-slate-400">
+                  <p className="text-slate-500">
                     {settings?.store_phone ?? ""}
                   </p>
-                  <p className="text-[12px] tracking-[0.3em] text-slate-300">
+                  <p className="text-[12px] tracking-[0.3em] text-slate-700">
                     {settings?.receipt_header || "STRUK"}
                   </p>
                 </div>
-                <div className="border-t border-dashed border-slate-700 pt-2 space-y-1">
+                <div className="border-t border-dashed border-slate-300 pt-2 space-y-1">
                   <div className="flex justify-between">
                     <span>No Transaksi</span>
-                    <span>#{detail.transaction.id}</span>
+                    <span>#{displayId}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Tanggal</span>
@@ -171,7 +190,7 @@ export default function ReceiptPage() {
                     <span>{transactionTime}</span>
                   </div>
                 </div>
-                <div className="border-t border-dashed border-slate-700 pt-2 space-y-1">
+                <div className="border-t border-dashed border-slate-300 pt-2 space-y-1">
                   {detail.items.map((item) => (
                     <div key={item.id} className="flex justify-between">
                       <span>
@@ -181,7 +200,7 @@ export default function ReceiptPage() {
                     </div>
                   ))}
                 </div>
-                <div className="border-t border-dashed border-slate-700 pt-2 space-y-1">
+                <div className="border-t border-dashed border-slate-300 pt-2 space-y-1">
                   <div className="flex justify-between">
                     <span>Subtotal</span>
                     <span>
@@ -191,15 +210,20 @@ export default function ReceiptPage() {
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Pajak</span>
+                    <span>
+                      PPN{" "}
+                      {settings?.tax_enabled
+                        ? `(${settings.tax_rate ?? 0}%)`
+                        : "(Nonaktif)"}
+                    </span>
                     <span>{formatRupiah(detail.transaction.tax_amount ?? 0)}</span>
                   </div>
-                  <div className="flex justify-between font-semibold text-slate-100">
+                  <div className="flex justify-between font-semibold text-slate-900">
                     <span>Total</span>
                     <span>{formatRupiah(detail.transaction.total)}</span>
                   </div>
                 </div>
-                <div className="border-t border-dashed border-slate-700 pt-2 text-center text-slate-400">
+                <div className="border-t border-dashed border-slate-300 pt-2 text-center text-slate-500">
                   {settings?.receipt_footer || "Terima kasih"}
                 </div>
               </div>

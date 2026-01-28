@@ -9,6 +9,7 @@ import type {
   ReportSeriesQuery,
   ReportSummary,
   SaveTransactionPayload,
+  SavedTransactionResult,
   StoreSettings,
   Transaction,
   TransactionDetail
@@ -17,10 +18,12 @@ import type {
 declare global {
   interface Window {
     api: {
-      saveTransaction: (payload: SaveTransactionPayload) => Promise<number>;
+      saveTransaction: (payload: SaveTransactionPayload) => Promise<SavedTransactionResult>;
       listTransactions: (payload?: DateRangeFilter & { page?: number; pageSize?: number }) => Promise<PagedResult<Transaction>>;
       getTransactionDetail: (id: number) => Promise<TransactionDetail | null>;
+      getTransactionDetailByCode: (code: string) => Promise<TransactionDetail | null>;
       printReceipt: (transactionId: number) => Promise<boolean>;
+      printReceiptByCode: (code: string) => Promise<boolean>;
       listCategories: () => Promise<Category[]>;
       createCategory: (payload: { name: string }) => Promise<number>;
       updateCategory: (payload: { id: number; name: string }) => Promise<boolean>;

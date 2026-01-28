@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getDb = exports.initDb = void 0;
+exports.getDb = exports.initDb = exports.ensureTransactionCodeColumn = void 0;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const better_sqlite3_1 = __importDefault(require("better-sqlite3"));
@@ -30,6 +30,7 @@ const createSchema = (database) => {
 
     CREATE TABLE IF NOT EXISTS transactions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      code TEXT UNIQUE,
       subtotal INTEGER,
       tax_amount INTEGER,
       total INTEGER NOT NULL,
@@ -50,7 +51,7 @@ const createSchema = (database) => {
 
     CREATE TABLE IF NOT EXISTS settings (
       id INTEGER PRIMARY KEY CHECK (id = 1),
-      store_name TEXT NOT NULL DEFAULT 'POS Desktop',
+      store_name TEXT NOT NULL DEFAULT 'SmartPOS',
       store_address TEXT NOT NULL DEFAULT '',
       store_phone TEXT NOT NULL DEFAULT '',
       tax_enabled INTEGER NOT NULL DEFAULT 0,
@@ -60,6 +61,7 @@ const createSchema = (database) => {
     );
 
     CREATE INDEX IF NOT EXISTS idx_transactions_created_at ON transactions(created_at);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_code_unique ON transactions(code) WHERE code IS NOT NULL AND code != '';
     CREATE INDEX IF NOT EXISTS idx_transaction_items_transaction_id ON transaction_items(transaction_id);
     CREATE INDEX IF NOT EXISTS idx_products_category_id ON products(category_id);
     CREATE UNIQUE INDEX IF NOT EXISTS idx_products_barcode_unique ON products(barcode) WHERE barcode IS NOT NULL AND barcode != '';
@@ -72,6 +74,11 @@ const ensureColumn = (database, table, column, definition) => {
         database.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
     }
 };
+const ensureTransactionCodeColumn = (database) => {
+    ensureColumn(database, "transactions", "code", "TEXT");
+    database.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_code_unique ON transactions(code) WHERE code IS NOT NULL AND code != ''");
+};
+exports.ensureTransactionCodeColumn = ensureTransactionCodeColumn;
 const initDb = () => {
     if (db)
         return db;
@@ -84,6 +91,7 @@ const initDb = () => {
     createSchema(db);
     ensureColumn(db, "transactions", "subtotal", "INTEGER");
     ensureColumn(db, "transactions", "tax_amount", "INTEGER");
+    (0, exports.ensureTransactionCodeColumn)(db);
     ensureColumn(db, "transaction_items", "product_id", "INTEGER");
     ensureColumn(db, "products", "barcode", "TEXT");
     ensureColumn(db, "products", "qty", "INTEGER NOT NULL DEFAULT 0");

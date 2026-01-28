@@ -1,5 +1,5 @@
 {
-  "name": "pos-destop",
+  "name": "smartpos",
   "version": "0.1.0",
   "private": true,
   "main": "dist-electron/electron/main.js",
@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "better-sqlite3": "^11.10.0",
+    "jsbarcode": "^3.11.6",
     "next": "16.1.4",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -35,8 +36,9 @@
     "typescript": "^5"
   },
   "build": {
-    "appId": "com.lukman.posdesktop",
-    "productName": "POS Desktop",
+    "appId": "com.lukman.smartpos",
+    "productName": "SmartPOS",
+    "icon": "public/logo.png",
     "asar": true,
     "files": [
       ".next/**",
@@ -50,7 +52,8 @@
       "output": "dist"
     },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "public/logo.png"
     },
     "nsis": {
       "oneClick": false,

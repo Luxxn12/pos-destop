@@ -8,6 +8,7 @@ const electron_1 = require("electron");
 const fs_1 = __importDefault(require("fs"));
 const index_1 = require("../db/index");
 const channels_1 = require("./channels");
+const date_1 = require("../../lib/date");
 const isValidPayload = (payload) => {
     if (!payload || !Array.isArray(payload.items))
         return false;
@@ -50,7 +51,34 @@ const formatCurrency = (value) => new Intl.NumberFormat("id-ID", {
     currency: "IDR",
     maximumFractionDigits: 0
 }).format(value);
+const buildTransactionCodePrefix = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const seconds = String(date.getSeconds()).padStart(2, "0");
+    return `${year}${month}${day}${hours}${minutes}${seconds}`;
+};
+const generateTransactionCode = (db) => {
+    const prefix = buildTransactionCodePrefix(new Date());
+    const exists = db.prepare("SELECT 1 FROM transactions WHERE code = ? LIMIT 1");
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+        const random = Math.floor(Math.random() * 10000)
+            .toString()
+            .padStart(4, "0");
+        const code = `${prefix}${random}`;
+        const row = exists.get(code);
+        if (!row)
+            return code;
+    }
+    const fallback = Math.floor(Math.random() * 1000000)
+        .toString()
+        .padStart(6, "0");
+    return `${prefix}${fallback}`;
+};
 const buildReceiptHtml = (settings, detail) => {
+    const displayId = detail.transaction.code ?? detail.transaction.id;
     const lines = detail.items
         .map((item) => `
         <div class="row">
@@ -81,12 +109,12 @@ const buildReceiptHtml = (settings, detail) => {
       <div class="muted">${settings.store_phone}</div>
       <h2>${settings.receipt_header}</h2>
       <div class="divider"></div>
-      <div class="row"><span>Transaksi #${detail.transaction.id}</span><span>${detail.transaction.created_at}</span></div>
+      <div class="row"><span>Transaksi #${displayId}</span><span>${(0, date_1.formatDateTimeDDMMYYYY)(detail.transaction.created_at)}</span></div>
       <div class="divider"></div>
       ${lines}
       <div class="divider"></div>
       <div class="row"><span>Subtotal</span><span>${formatCurrency(detail.transaction.subtotal ?? detail.transaction.total)}</span></div>
-      <div class="row"><span>Pajak</span><span>${formatCurrency(detail.transaction.tax_amount ?? 0)}</span></div>
+      <div class="row"><span>PPN ${settings.tax_enabled === 1 ? `(${settings.tax_rate ?? 0}%)` : "(Nonaktif)"}</span><span>${formatCurrency(detail.transaction.tax_amount ?? 0)}</span></div>
       <div class="row total"><span>Total</span><span>${formatCurrency(detail.transaction.total)}</span></div>
       <div class="divider"></div>
       <div class="footer">${settings.receipt_footer}</div>
@@ -94,7 +122,33 @@ const buildReceiptHtml = (settings, detail) => {
   </html>
   `;
 };
+const getTransactionDetailById = (db, id) => {
+    const transaction = db
+        .prepare("SELECT id, code, subtotal, tax_amount, total, created_at FROM transactions WHERE id = ?")
+        .get(id);
+    if (!transaction)
+        return null;
+    const items = db
+        .prepare("SELECT id, transaction_id, product_id, name, qty, price, line_total FROM transaction_items WHERE transaction_id = ?")
+        .all(id);
+    return { transaction, items };
+};
+const getTransactionDetailByCode = (db, code) => {
+    const normalized = code.trim();
+    if (!normalized)
+        return null;
+    const transaction = db
+        .prepare("SELECT id, code, subtotal, tax_amount, total, created_at FROM transactions WHERE code = ?")
+        .get(normalized);
+    if (!transaction)
+        return null;
+    const items = db
+        .prepare("SELECT id, transaction_id, product_id, name, qty, price, line_total FROM transaction_items WHERE transaction_id = ?")
+        .all(transaction.id);
+    return { transaction, items };
+};
 const registerPosIpc = () => {
+    (0, index_1.ensureTransactionCodeColumn)((0, index_1.getDb)());
     electron_1.ipcMain.handle(channels_1.IPCChannels.saveTransaction, (_event, payload) => {
         if (!isValidPayload(payload)) {
             throw new Error("Invalid payload");
@@ -103,8 +157,10 @@ const registerPosIpc = () => {
         const settings = db
             .prepare("SELECT store_name, store_address, store_phone, tax_enabled, tax_rate, receipt_header, receipt_footer FROM settings WHERE id = 1")
             .get();
-        const insertTransaction = db.prepare("INSERT INTO transactions (subtotal, tax_amount, total) VALUES (?, ?, ?)");
+        const insertTransaction = db.prepare("INSERT INTO transactions (code, subtotal, tax_amount, total) VALUES (?, ?, ?, ?)");
         const insertItem = db.prepare("INSERT INTO transaction_items (transaction_id, product_id, name, qty, price, line_total) VALUES (?, ?, ?, ?, ?, ?)");
+        const selectProductQty = db.prepare("SELECT qty FROM products WHERE id = ?");
+        const updateProductQty = db.prepare("UPDATE products SET qty = ? WHERE id = ?");
         const transactionFn = db.transaction((data) => {
             const subtotal = data.items.reduce((sum, item) => sum + Math.round(item.qty * item.price), 0);
             const taxEnabled = settings.tax_enabled === 1;
@@ -112,13 +168,26 @@ const registerPosIpc = () => {
                 ? Math.round((subtotal * settings.tax_rate) / 100)
                 : 0;
             const total = subtotal + taxAmount;
-            const result = insertTransaction.run(subtotal, taxAmount, total);
+            const transactionCode = generateTransactionCode(db);
+            const result = insertTransaction.run(transactionCode, subtotal, taxAmount, total);
             const transactionId = Number(result.lastInsertRowid);
             for (const item of data.items) {
+                if (item.product_id != null) {
+                    const row = selectProductQty.get(item.product_id);
+                    if (!row) {
+                        throw new Error("Produk tidak ditemukan.");
+                    }
+                    const requestedQty = Math.round(item.qty);
+                    const nextQty = row.qty - requestedQty;
+                    if (nextQty < 0) {
+                        throw new Error(`Stok ${item.name} tidak cukup.`);
+                    }
+                    updateProductQty.run(nextQty, item.product_id);
+                }
                 const lineTotal = Math.round(item.qty * item.price);
                 insertItem.run(transactionId, item.product_id ?? null, item.name, Math.round(item.qty), Math.round(item.price), lineTotal);
             }
-            return transactionId;
+            return { id: transactionId, code: transactionCode };
         });
         return transactionFn(payload);
     });
@@ -132,7 +201,7 @@ const registerPosIpc = () => {
             .prepare(`SELECT COUNT(*) as total FROM transactions ${clause}`)
             .get(...params);
         const rows = db
-            .prepare(`SELECT id, subtotal, tax_amount, total, created_at FROM transactions ${clause} ORDER BY id DESC LIMIT ? OFFSET ?`)
+            .prepare(`SELECT id, code, subtotal, tax_amount, total, created_at FROM transactions ${clause} ORDER BY id DESC LIMIT ? OFFSET ?`)
             .all(...params, pageSize, offset);
         const result = {
             rows,
@@ -142,31 +211,50 @@ const registerPosIpc = () => {
     });
     electron_1.ipcMain.handle(channels_1.IPCChannels.getTransactionDetail, (_event, id) => {
         const db = (0, index_1.getDb)();
-        const transaction = db
-            .prepare("SELECT id, subtotal, tax_amount, total, created_at FROM transactions WHERE id = ?")
-            .get(id);
-        if (!transaction)
-            return null;
-        const items = db
-            .prepare("SELECT id, transaction_id, product_id, name, qty, price, line_total FROM transaction_items WHERE transaction_id = ?")
-            .all(id);
-        const detail = { transaction, items };
-        return detail;
+        return getTransactionDetailById(db, id);
+    });
+    electron_1.ipcMain.handle(channels_1.IPCChannels.getTransactionDetailByCode, (_event, code) => {
+        const db = (0, index_1.getDb)();
+        return getTransactionDetailByCode(db, code);
     });
     electron_1.ipcMain.handle(channels_1.IPCChannels.printReceipt, async (event, id) => {
         const db = (0, index_1.getDb)();
-        const transaction = db
-            .prepare("SELECT id, subtotal, tax_amount, total, created_at FROM transactions WHERE id = ?")
-            .get(id);
-        if (!transaction)
+        const detail = getTransactionDetailById(db, id);
+        if (!detail)
             return false;
-        const items = db
-            .prepare("SELECT id, transaction_id, product_id, name, qty, price, line_total FROM transaction_items WHERE transaction_id = ?")
-            .all(id);
         const settings = db
             .prepare("SELECT store_name, store_address, store_phone, tax_enabled, tax_rate, receipt_header, receipt_footer FROM settings WHERE id = 1")
             .get();
-        const detail = { transaction, items };
+        const receiptHtml = buildReceiptHtml(settings, detail);
+        const printWindow = new electron_1.BrowserWindow({
+            width: 320,
+            height: 600,
+            show: false,
+            webPreferences: {
+                contextIsolation: true,
+                nodeIntegration: false,
+                sandbox: true
+            }
+        });
+        await printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(receiptHtml)}`);
+        return new Promise((resolve) => {
+            printWindow.webContents.print({ silent: false, printBackground: true }, (success, failureReason) => {
+                if (!success) {
+                    console.error("Print gagal:", failureReason);
+                }
+                printWindow.close();
+                resolve(success);
+            });
+        });
+    });
+    electron_1.ipcMain.handle(channels_1.IPCChannels.printReceiptByCode, async (event, code) => {
+        const db = (0, index_1.getDb)();
+        const detail = getTransactionDetailByCode(db, code);
+        if (!detail)
+            return false;
+        const settings = db
+            .prepare("SELECT store_name, store_address, store_phone, tax_enabled, tax_rate, receipt_header, receipt_footer FROM settings WHERE id = 1")
+            .get();
         const receiptHtml = buildReceiptHtml(settings, detail);
         const printWindow = new electron_1.BrowserWindow({
             width: 320,
@@ -329,6 +417,7 @@ const registerPosIpc = () => {
     });
     electron_1.ipcMain.handle(channels_1.IPCChannels.getDashboardSummary, () => {
         const db = (0, index_1.getDb)();
+        const LOW_STOCK_THRESHOLD = 5;
         const todayRow = db
             .prepare(`SELECT COUNT(*) as transactions_today, COALESCE(SUM(total), 0) as revenue_today
          FROM transactions
@@ -337,10 +426,41 @@ const registerPosIpc = () => {
         const productsRow = db
             .prepare("SELECT COUNT(*) as products_count FROM products")
             .get();
+        const topProducts = db
+            .prepare(`SELECT name, COALESCE(SUM(qty), 0) as qty_sold
+         FROM transaction_items
+         WHERE transaction_id IN (
+           SELECT id FROM transactions WHERE date(created_at) = date('now')
+         )
+         GROUP BY name
+         ORDER BY qty_sold DESC, name ASC
+         LIMIT 5`)
+            .all();
+        const lowStockCountRow = db
+            .prepare("SELECT COUNT(*) as low_stock_count FROM products WHERE qty <= ?")
+            .get(LOW_STOCK_THRESHOLD);
+        const lowStockItems = db
+            .prepare(`SELECT id, name, qty
+         FROM products
+         WHERE qty <= ?
+         ORDER BY qty ASC, name ASC
+         LIMIT 5`)
+            .all(LOW_STOCK_THRESHOLD);
         return {
             transactions_today: todayRow.transactions_today ?? 0,
             revenue_today: todayRow.revenue_today ?? 0,
-            products_count: productsRow.products_count ?? 0
+            products_count: productsRow.products_count ?? 0,
+            top_products: topProducts.map((item) => ({
+                name: item.name,
+                qty_sold: item.qty_sold ?? 0
+            })),
+            low_stock_count: lowStockCountRow.low_stock_count ?? 0,
+            low_stock_items: lowStockItems.map((item) => ({
+                id: item.id,
+                name: item.name,
+                qty: item.qty ?? 0
+            })),
+            low_stock_threshold: LOW_STOCK_THRESHOLD
         };
     });
     electron_1.ipcMain.handle(channels_1.IPCChannels.getReportSummary, (_event, filter) => {
@@ -380,11 +500,11 @@ const registerPosIpc = () => {
         const db = (0, index_1.getDb)();
         const { clause, params } = buildDateFilter(filter);
         const rows = db
-            .prepare(`SELECT id, subtotal, tax_amount, total, created_at FROM transactions ${clause} ORDER BY id DESC`)
+            .prepare(`SELECT id, code, subtotal, tax_amount, total, created_at FROM transactions ${clause} ORDER BY id DESC`)
             .all(...params);
-        const csvLines = ["id,subtotal,tax_amount,total,created_at"];
+        const csvLines = ["id,code,subtotal,tax_amount,total,created_at"];
         for (const row of rows) {
-            csvLines.push(`${row.id},${row.subtotal ?? 0},${row.tax_amount ?? 0},${row.total},${row.created_at}`);
+            csvLines.push(`${row.id},${row.code ?? ""},${row.subtotal ?? 0},${row.tax_amount ?? 0},${row.total},${row.created_at}`);
         }
         const win = electron_1.BrowserWindow.fromWebContents(event.sender);
         const dialogOptions = {

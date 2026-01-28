@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "POS Desktop",
-  description: "Offline POS Desktop berbasis Electron"
+  title: "SmartPOS",
+  description: "Offline SmartPOS berbasis Electron"
 };
 
 export default function RootLayout({

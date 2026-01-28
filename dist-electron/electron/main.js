@@ -72,7 +72,7 @@ const createApp = async () => {
     const url = await startNextServer();
     await createMainWindow(url);
 };
-electron_1.app.setAppUserModelId("com.lukman.posdesktop");
+electron_1.app.setAppUserModelId("com.lukman.smartpos");
 electron_1.app.whenReady().then(createApp);
 electron_1.app.on("activate", () => {
     if (electron_1.BrowserWindow.getAllWindows().length === 0) {

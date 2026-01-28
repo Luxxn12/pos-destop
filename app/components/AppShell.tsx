@@ -125,38 +125,44 @@ export default function AppShell({ children }: AppShellProps) {
 
   if (!isAuthed) {
     return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-6">
+    <main className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center p-6">
       <form
         onSubmit={handleLogin}
-        className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-xl"
+        className="w-full max-w-md bg-white border border-slate-200 rounded-2xl p-8 shadow-xl"
       >
-          <h1 className="text-2xl font-semibold mb-2">Masuk POS Desktop</h1>
-          <p className="text-sm text-slate-400 mb-6">
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-2xl font-semibold">Masuk SmartPOS</h1>
+          </div>
+          <p className="text-sm text-slate-500 mb-6">
             Gunakan kredensial yang sudah ditentukan.
           </p>
-          <label className="block text-sm text-slate-300 mb-2">Username</label>
+          <label className="block text-sm text-slate-700 mb-2">
+            Username <span className="text-rose-600">*</span>
+          </label>
           <input
             value={form.username}
             onChange={(event) =>
               setForm((prev) => ({ ...prev, username: event.target.value }))
             }
-            className="w-full h-12 mb-4 rounded-lg bg-slate-950 border border-slate-700 px-4 text-sm text-slate-100"
+            className="w-full h-12 mb-4 rounded-lg bg-white border border-slate-300 px-4 text-sm text-slate-900"
             placeholder="admin"
           />
-          <label className="block text-sm text-slate-300 mb-2">Password</label>
+          <label className="block text-sm text-slate-700 mb-2">
+            Password <span className="text-rose-600">*</span>
+          </label>
           <input
             type="password"
             value={form.password}
             onChange={(event) =>
               setForm((prev) => ({ ...prev, password: event.target.value }))
             }
-            className="w-full h-12 mb-6 rounded-lg bg-slate-950 border border-slate-700 px-4 text-sm text-slate-100"
+            className="w-full h-12 mb-6 rounded-lg bg-white border border-slate-300 px-4 text-sm text-slate-900"
             placeholder="admin123"
           />
-          {note && <p className="text-sm text-amber-300 mb-4">{note}</p>}
+          {note && <p className="text-sm text-amber-600 mb-4">{note}</p>}
           <button
             type="submit"
-            className="w-full h-12 rounded-lg bg-emerald-500 text-slate-950 text-sm font-semibold"
+            className="w-full h-12 rounded-lg bg-emerald-500 text-white text-sm font-semibold"
           >
             Masuk
           </button>
@@ -167,7 +173,7 @@ export default function AppShell({ children }: AppShellProps) {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100">
+    <main className="min-h-screen bg-slate-50 text-slate-900">
       <div
         className={[
           "grid min-h-screen transition-[grid-template-columns] duration-200",
@@ -176,7 +182,7 @@ export default function AppShell({ children }: AppShellProps) {
       >
         <aside
           className={[
-            "border-r border-slate-800 bg-slate-900 transition-[padding] duration-200",
+            "border-r border-slate-200 bg-white transition-[padding] duration-200",
             isCollapsed ? "p-4" : "p-6"
           ].join(" ")}
         >
@@ -186,14 +192,14 @@ export default function AppShell({ children }: AppShellProps) {
               isCollapsed ? "flex-col" : "flex-row"
             ].join(" ")}
           >
-            <div className={isCollapsed ? "hidden" : "block"}>
-              <h2 className="text-lg font-semibold">POS Desktop</h2>
+            <div className={isCollapsed ? "hidden" : "flex items-center gap-3"}>
+              <span className="text-lg font-semibold">SmartPOS</span>
             </div>
             <button
               type="button"
               onClick={() => setIsCollapsed((prev) => !prev)}
               className={[
-                "rounded-lg border border-slate-800 bg-slate-950/60 p-2 text-slate-300 transition hover:text-slate-100 hover:border-slate-700",
+                "rounded-lg border border-slate-200 bg-slate-100 p-2 text-slate-700 transition hover:text-slate-900 hover:border-slate-300",
                 isCollapsed ? "self-center" : "self-start"
               ].join(" ")}
               aria-label={isCollapsed ? "Perbesar sidebar" : "Perkecil sidebar"}
@@ -221,16 +227,16 @@ export default function AppShell({ children }: AppShellProps) {
                   className={[
                     "group relative flex items-center gap-3 rounded-lg px-3 py-2 transition",
                     active
-                      ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
-                      : "text-slate-300 hover:bg-slate-800/80 hover:text-slate-100 border border-transparent"
+                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                      : "text-slate-700 hover:bg-slate-100 hover:text-slate-900 border border-transparent"
                   ].join(" ")}
                 >
-                  <span className={active ? "text-emerald-300" : "text-slate-400"}>
+                  <span className={active ? "text-emerald-600" : "text-slate-500"}>
                     {item.icon}
                   </span>
                   {!isCollapsed && <span className="leading-none">{item.label}</span>}
                   {isCollapsed && (
-                    <span className="pointer-events-none absolute left-full top-1/2 ml-3 -translate-y-1/2 whitespace-nowrap rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-100 opacity-0 shadow-lg transition group-hover:opacity-100">
+                    <span className="pointer-events-none absolute left-full top-1/2 ml-3 -translate-y-1/2 whitespace-nowrap rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-900 opacity-0 shadow-lg transition group-hover:opacity-100">
                       {item.label}
                     </span>
                   )}

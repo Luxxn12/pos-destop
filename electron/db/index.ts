@@ -26,6 +26,7 @@ const createSchema = (database: Database.Database) => {
 
     CREATE TABLE IF NOT EXISTS transactions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      code TEXT UNIQUE,
       subtotal INTEGER,
       tax_amount INTEGER,
       total INTEGER NOT NULL,
@@ -46,7 +47,7 @@ const createSchema = (database: Database.Database) => {
 
     CREATE TABLE IF NOT EXISTS settings (
       id INTEGER PRIMARY KEY CHECK (id = 1),
-      store_name TEXT NOT NULL DEFAULT 'POS Desktop',
+      store_name TEXT NOT NULL DEFAULT 'SmartPOS',
       store_address TEXT NOT NULL DEFAULT '',
       store_phone TEXT NOT NULL DEFAULT '',
       tax_enabled INTEGER NOT NULL DEFAULT 0,
@@ -56,6 +57,7 @@ const createSchema = (database: Database.Database) => {
     );
 
     CREATE INDEX IF NOT EXISTS idx_transactions_created_at ON transactions(created_at);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_code_unique ON transactions(code) WHERE code IS NOT NULL AND code != '';
     CREATE INDEX IF NOT EXISTS idx_transaction_items_transaction_id ON transaction_items(transaction_id);
     CREATE INDEX IF NOT EXISTS idx_products_category_id ON products(category_id);
     CREATE UNIQUE INDEX IF NOT EXISTS idx_products_barcode_unique ON products(barcode) WHERE barcode IS NOT NULL AND barcode != '';
@@ -75,6 +77,13 @@ const ensureColumn = (
   }
 };
 
+export const ensureTransactionCodeColumn = (database: Database.Database) => {
+  ensureColumn(database, "transactions", "code", "TEXT");
+  database.exec(
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_code_unique ON transactions(code) WHERE code IS NOT NULL AND code != ''"
+  );
+};
+
 export const initDb = () => {
   if (db) return db;
   const userDataPath = app.getPath("userData");
@@ -88,6 +97,7 @@ export const initDb = () => {
   createSchema(db);
   ensureColumn(db, "transactions", "subtotal", "INTEGER");
   ensureColumn(db, "transactions", "tax_amount", "INTEGER");
+  ensureTransactionCodeColumn(db);
   ensureColumn(db, "transaction_items", "product_id", "INTEGER");
   ensureColumn(db, "products", "barcode", "TEXT");
   ensureColumn(db, "products", "qty", "INTEGER NOT NULL DEFAULT 0");

@@ -48,17 +48,19 @@ export default function SettingsPage() {
     <>
       <header>
         <h1 className="text-2xl font-semibold">Pengaturan</h1>
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-slate-500">
           Informasi toko, pajak, dan konfigurasi struk.
         </p>
       </header>
 
-      <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6 space-y-4">
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
         <h2 className="text-lg font-semibold">Informasi Toko</h2>
         <div className="space-y-1">
-          <label className="block text-xs text-slate-400">Nama Toko</label>
+          <label className="block text-xs text-slate-500">
+            Nama Toko <span className="text-rose-600">*</span>
+          </label>
           <input
-            className="w-full h-12 rounded-lg bg-slate-950 border border-slate-700 px-4 text-sm"
+            className="w-full h-12 rounded-lg bg-white border border-slate-300 px-4 text-sm"
             placeholder="Nama Toko"
             value={settings.store_name}
             onChange={(event) =>
@@ -67,9 +69,11 @@ export default function SettingsPage() {
           />
         </div>
         <div className="space-y-1">
-          <label className="block text-xs text-slate-400">Alamat</label>
+          <label className="block text-xs text-slate-500">
+            Alamat <span className="text-rose-600">*</span>
+          </label>
           <input
-            className="w-full h-12 rounded-lg bg-slate-950 border border-slate-700 px-4 text-sm"
+            className="w-full h-12 rounded-lg bg-white border border-slate-300 px-4 text-sm"
             placeholder="Alamat"
             value={settings.store_address}
             onChange={(event) =>
@@ -81,9 +85,11 @@ export default function SettingsPage() {
           />
         </div>
         <div className="space-y-1">
-          <label className="block text-xs text-slate-400">Nomor Telepon</label>
+          <label className="block text-xs text-slate-500">
+            Nomor Telepon <span className="text-rose-600">*</span>
+          </label>
           <input
-            className="w-full h-12 rounded-lg bg-slate-950 border border-slate-700 px-4 text-sm"
+            className="w-full h-12 rounded-lg bg-white border border-slate-300 px-4 text-sm"
             placeholder="Nomor Telepon"
             value={settings.store_phone}
             onChange={(event) =>
@@ -93,8 +99,8 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6 space-y-4">
-        <h2 className="text-lg font-semibold">Pengaturan Pajak / PPN</h2>
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
+        <h2 className="text-lg font-semibold">Pengaturan PPN</h2>
         <label className="flex items-center gap-3 text-sm">
           <input
             type="checkbox"
@@ -109,10 +115,12 @@ export default function SettingsPage() {
           Aktifkan PPN
         </label>
         <div className="space-y-1">
-          <label className="block text-xs text-slate-400">Tarif PPN (%)</label>
+          <label className="block text-xs text-slate-500">
+            Tarif PPN (%) <span className="text-rose-600">*</span>
+          </label>
           <input
             type="number"
-            className="w-full h-12 rounded-lg bg-slate-950 border border-slate-700 px-4 text-sm"
+            className="w-full h-12 rounded-lg bg-white border border-slate-300 px-4 text-sm"
             placeholder="Tarif PPN (%)"
             value={settings.tax_rate}
             onChange={(event) =>
@@ -125,12 +133,14 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6 space-y-4">
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
         <h2 className="text-lg font-semibold">Pengaturan Struk</h2>
         <div className="space-y-1">
-          <label className="block text-xs text-slate-400">Header Struk</label>
+          <label className="block text-xs text-slate-500">
+            Header Struk <span className="text-rose-600">*</span>
+          </label>
           <input
-            className="w-full h-12 rounded-lg bg-slate-950 border border-slate-700 px-4 text-sm"
+            className="w-full h-12 rounded-lg bg-white border border-slate-300 px-4 text-sm"
             placeholder="Header struk (mis. STRUK PEMBAYARAN)"
             value={settings.receipt_header ?? ""}
             onChange={(event) =>
@@ -142,9 +152,11 @@ export default function SettingsPage() {
           />
         </div>
         <div className="space-y-1">
-          <label className="block text-xs text-slate-400">Footer Struk</label>
+          <label className="block text-xs text-slate-500">
+            Footer Struk <span className="text-rose-600">*</span>
+          </label>
           <textarea
-            className="w-full rounded-lg bg-slate-950 border border-slate-700 p-3"
+            className="w-full rounded-lg bg-white border border-slate-300 p-3"
             placeholder="Footer struk (mis. Terima kasih)"
             rows={3}
             value={settings.receipt_footer ?? ""}
@@ -160,11 +172,11 @@ export default function SettingsPage() {
 
       <button
         onClick={handleSave}
-        className="h-12 rounded-lg bg-emerald-500 px-4 text-sm font-semibold text-slate-950"
+        className="h-12 rounded-lg bg-emerald-500 px-4 text-sm font-semibold text-white"
       >
         Simpan Pengaturan
       </button>
-      {note && <p className="text-sm text-emerald-300">{note}</p>}
+      {note && <p className="text-sm text-emerald-700">{note}</p>}
     </>
   );
 }
